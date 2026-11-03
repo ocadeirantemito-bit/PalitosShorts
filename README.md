@@ -100,8 +100,10 @@ O teste de renderização gera `examples/palito-show.mp4`, verifica codec, taman
 
 ## Atualização visual: dupla desenhada e cenários
 
-Palito tem apresentação masculina, cabelo curto, camiseta e tênis; Tica tem apresentação feminina, cabelo longo, brincos, blusa e tênis. O identificador interno TICO foi preservado para abrir projetos e backups existentes. Corpos, mãos, pés e rostos são vetoriais; braços e pernas se movem separadamente, a boca continua sincronizada ao áudio.
+Palito tem apresentação masculina, cabelo curto, camiseta e tênis; Tica tem apresentação feminina, cabelo longo, brincos, blusa e tênis. O identificador interno TICO foi preservado para abrir projetos e backups existentes. Corpos, mãos, pés e rostos são vetoriais; braços e pernas têm articulações, os personagens respiram, piscam, olham um para o outro e a boca continua sincronizada ao áudio.
 
-Sala com sofá/janela/luminária, parque com árvores/banco/caminho e café com balcão/mesas. A categoria escolhe automaticamente o cenário; o editor permite selecionar outro. As imagens `examples/visual-sala.png`, `visual-parque.png` e `visual-cafe.png` vêm da composição real. Vídeos já exportados preservam o desenho anterior; gere novamente para usar o novo visual.
+Sala com sofá/janela/luminária, parque com árvores/banco/caminho e café com balcão/mesas. Os cenários têm movimento ambiente, profundidade em primeiro plano, luz e enquadramento que acompanha quem está falando. A categoria escolhe automaticamente o cenário; o editor permite selecionar outro.
+
+O texto da história pode colocar objetos na cena, como café, celular, presente, lista, halter, pizza, chuva ou Wi-Fi. Surpresa, riso, comemoração, tristeza e queda também recebem efeitos visuais próprios. As imagens `examples/visual-sala.png`, `visual-parque.png` e `visual-cafe.png` vêm da composição real. Vídeos já exportados preservam o desenho anterior; gere novamente para usar o novo visual.
 
 As vozes ainda são eSpeak sintéticas. O download de modelos neurais em huggingface.co continua bloqueado no ambiente atual. Foi salva uma adição desse domínio ao rascunho de rede, sem publicação. Depois de aplicar o acesso será necessário avaliar licença, português brasileiro, voz masculina/feminina, velocidade no computador e incorporar/testar o novo motor. A simples troca de pitch não torna as vozes neurais.

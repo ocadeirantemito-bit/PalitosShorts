@@ -1,8 +1,9 @@
 import type {Project} from './model';
 
 export const NARRATION_FPS = 30;
-export const SPEECH_PREROLL_FRAMES = 9;
+export const SPEECH_PREROLL_FRAMES = 6;
 export const MIN_SPEECH_PAUSE_FRAMES = 12;
+export const REACTION_GAP_FRAMES = 6;
 
 export type NarrationScene = {
   start: number;
@@ -17,7 +18,10 @@ export type NarrationScene = {
 export type Narration = {
   durationInFrames: number;
   scenes: NarrationScene[];
+  reaction?: NarrationReaction;
 };
+
+export type NarrationReaction={start:number;end:number;src:string;envelope:number[];speaker:'PALITO'|'TICO'};
 
 export type NarrationClip = {
   duration: number;
@@ -30,7 +34,7 @@ export type NarrationClip = {
  * Speech is never sped up or truncated. A caller must select/rewrite a shorter
  * script when the complete recordings and their pauses do not fit.
  */
-export function buildNarration(project: Project, clips: NarrationClip[]): Narration {
+export function buildNarration(project: Project, clips: NarrationClip[], reactionClip?:NarrationClip): Narration {
   if (clips.length !== project.scenes.length || clips.length === 0) {
     throw new Error('Cada cena precisa de uma fala gravada antes da renderização.');
   }
@@ -43,19 +47,28 @@ export function buildNarration(project: Project, clips: NarrationClip[]): Narrat
     return Math.ceil(clip.duration * NARRATION_FPS);
   });
   const durationInFrames = project.duration * NARRATION_FPS;
-  const minimum = lengths.reduce((sum, length) => sum + length + SPEECH_PREROLL_FRAMES + MIN_SPEECH_PAUSE_FRAMES, 0);
+  const reactionLength=reactionClip?Math.ceil(reactionClip.duration*NARRATION_FPS):0;
+  if(reactionClip&&(!reactionClip.src||!reactionClip.envelope.length||reactionClip.envelope.some(n=>!Number.isFinite(n)||n<0||n>1))){
+    throw new Error('Áudio de reação inválido.');
+  }
+  const minimum = lengths.reduce((sum, length) => sum + length + SPEECH_PREROLL_FRAMES + MIN_SPEECH_PAUSE_FRAMES, 0)+(reactionClip?REACTION_GAP_FRAMES+reactionLength:0);
   if (minimum > durationInFrames) {
     throw new Error(`As falas completas precisam de pelo menos ${(minimum / NARRATION_FPS).toFixed(1)} segundos. Gere um roteiro mais curto ou escolha 30 segundos; nenhuma fala será cortada ou acelerada.`);
   }
   const extra = durationInFrames - minimum;
   const holdPerScene = Math.floor(extra / clips.length);
   let cursor = 0;
+  let reaction:NarrationReaction|undefined;
   const scenes = clips.map((clip, index): NarrationScene => {
     const start = cursor;
     const audioStart = start + SPEECH_PREROLL_FRAMES;
     const audioEnd = audioStart + lengths[index];
     const hold = holdPerScene + (index < extra % clips.length ? 1 : 0);
-    cursor = audioEnd + MIN_SPEECH_PAUSE_FRAMES + hold;
+    if(reactionClip&&index===clips.length-1){
+      const reactionStart=audioEnd+REACTION_GAP_FRAMES;
+      reaction={start:reactionStart,end:reactionStart+reactionLength,src:reactionClip.src,envelope:[...reactionClip.envelope],speaker:'TICO'};
+      cursor=reaction.end+MIN_SPEECH_PAUSE_FRAMES+hold;
+    }else cursor = audioEnd + MIN_SPEECH_PAUSE_FRAMES + hold;
     return {
       start, end: cursor, audioStart, audioEnd,
       src: clip.src,
@@ -63,10 +76,19 @@ export function buildNarration(project: Project, clips: NarrationClip[]): Narrat
       speaker: project.scenes[index].speaker,
     };
   });
-  return {durationInFrames, scenes};
+  return {durationInFrames, scenes, reaction};
 }
 
 export function narrationMouthAt(scene: NarrationScene, frame: number): number {
   if (frame < scene.audioStart || frame >= scene.audioEnd) return 0;
-  return scene.envelope[Math.floor(frame - scene.audioStart)] ?? 0;
+  const index=Math.floor(frame-scene.audioStart);
+  const energy=Math.max(scene.envelope[index]??0,(scene.envelope[index+1]??0)*.72);
+  return energy<.065?0:Math.min(1,.12+energy*.82);
+}
+
+export function narrationReactionMouthAt(reaction:NarrationReaction|undefined,frame:number){
+ if(!reaction||frame<reaction.start||frame>=reaction.end)return 0;
+ const index=Math.floor(frame-reaction.start);
+ const energy=Math.max(reaction.envelope[index]??0,(reaction.envelope[index+1]??0)*.72);
+ return energy<.065?0:Math.min(1,.12+energy*.82);
 }

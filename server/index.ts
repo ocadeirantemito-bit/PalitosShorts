@@ -35,6 +35,15 @@ app.post('/api/render',async(req,res)=>{
   // Automatic shortening uses distinct complete stories from the same category;
   // user-edited dialogue is never silently replaced or accelerated.
   let project=prepareStory(parsed.data);
+  let reactionClip:{duration:number;envelope:number[];src:string}|undefined;
+  let reactionInfo:unknown;
+  if(project.category==='Humor'&&project.sound){
+   job.status='speaking';job.message='Criando a risada da cena final…';
+   const reactionPath=path.join(directory,'reaction.wav');
+   const reactionAudio=await synthesize('Ha, ha, ha!','TICO',reactionPath);const reactionBytes=await readFile(reactionPath);
+   reactionClip={duration:reactionAudio.duration,envelope:reactionAudio.envelope,src:`data:audio/wav;base64,${reactionBytes.toString('base64')}`};
+   reactionInfo={speaker:'TICO',role:'reaction',voice:reactionAudio.voice,engine:reactionAudio.engine,duration:reactionAudio.duration,sha256:createHash('sha256').update(reactionBytes).digest('hex')};
+  }
   const alternatives=project.status==='roteiro'?catalog.filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
   let prepared:ReturnType<typeof buildNarration>|undefined;
   let voiceInfo:unknown[]=[];
@@ -48,7 +57,7 @@ app.post('/api/render',async(req,res)=>{
     clips.push({duration:audio.duration,envelope:audio.envelope,src:`data:audio/wav;base64,${bytes.toString('base64')}`});
     voiceInfo.push({speaker:scene.speaker,voice:audio.voice,engine:audio.engine,duration:audio.duration,sha256:createHash('sha256').update(bytes).digest('hex')});job.progress=.05+.2*(i+1)/project.scenes.length;
    }
-   try{prepared=buildNarration(project,clips);break;}catch(error){if(attempt===alternatives.length)throw error;}
+   try{prepared=buildNarration(project,clips,reactionClip);break;}catch(error){if(attempt===alternatives.length)throw error;}
   }
   if(!prepared)throw Error('Não foi possível ajustar as falas à duração. Escolha 30 segundos.');
   const narration=prepared;job.project=project;
@@ -65,7 +74,7 @@ app.post('/api/render',async(req,res)=>{
   }catch(error){if(timedOut)throw new Error('A geração ultrapassou 12 minutos e foi interrompida. Feche programas pesados e tente novamente.');throw error;}finally{clearTimeout(renderTimer);}
   job.status='checking';job.progress=.92;job.message='Conferindo vídeo, vozes e sincronização…';
   const quality=await validateMovie(mp4,project.duration,narration);
-  const manifest={id,project,voices:voiceInfo,narration:{...narration,scenes:narration.scenes.map((s,i)=>({...s,src:`/api/audio/${id}/${i}.wav`}))},quality,created:new Date().toISOString()};
+  const manifest={id,project,voices:reactionInfo?[...voiceInfo,reactionInfo]:voiceInfo,narration:{...narration,scenes:narration.scenes.map((s,i)=>({...s,src:`/api/audio/${id}/${i}.wav`})),reaction:narration.reaction?{...narration.reaction,src:`/api/audio/${id}/reaction.wav`}:undefined},quality,created:new Date().toISOString()};
   await writeFile(path.join(directory,'production.json'),JSON.stringify(manifest,null,2));
   job.status='done';job.progress=1;job.message='Vídeo com vozes pronto para assistir.';job.file=`/api/files/${id}.mp4`;
   await writeFile(path.join(directory,'job.json'),JSON.stringify(job));
@@ -73,7 +82,7 @@ app.post('/api/render',async(req,res)=>{
 });
 app.get('/api/jobs/:id',async(req,res)=>{if(!idPattern.test(req.params.id))return res.status(404).json({error:'Exportação não encontrada.'});let job=jobs.get(req.params.id);if(!job){try{job=JSON.parse(await readFile(path.join(output,req.params.id,'job.json'),'utf8'));}catch{return res.status(404).json({error:'Exportação não encontrada. Tente gerar novamente.'});}}res.json(job);});
 app.get('/api/productions/:id',async(req,res)=>{if(!idPattern.test(req.params.id))return res.status(404).json({error:'Produção não encontrada.'});try{res.json(JSON.parse(await readFile(path.join(output,req.params.id,'production.json'),'utf8')));}catch{res.status(404).json({error:'Produção ainda não concluída ou removida.'});}});
-app.get('/api/audio/:id/:file',(req,res)=>{if(!idPattern.test(req.params.id)||!/^\d\.wav$/.test(req.params.file))return res.status(404).end();res.sendFile(path.join(output,req.params.id,req.params.file),e=>{if(e&&!res.headersSent)res.status(404).end();});});
+app.get('/api/audio/:id/:file',(req,res)=>{if(!idPattern.test(req.params.id)||!/^(?:\d|reaction)\.wav$/.test(req.params.file))return res.status(404).end();res.sendFile(path.join(output,req.params.id,req.params.file),e=>{if(e&&!res.headersSent)res.status(404).end();});});
 app.get('/api/files/:file',async(req,res)=>{if(!/^[a-f0-9-]{36}\.mp4$/.test(req.params.file))return res.status(404).json({error:'Arquivo não encontrado.'});const file=path.join(output,req.params.file);try{await stat(file);res.download(file,'palito-show.mp4');}catch{res.status(404).json({error:'Arquivo não encontrado. Gere o vídeo novamente.'});}});
 app.use(express.static(path.join(root,'dist')));
 app.use('/api',(_req,res)=>res.status(404).json({error:'Rota não encontrada.'}));

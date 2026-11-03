@@ -28,3 +28,10 @@ test('áudio decodificado precisa corresponder às janelas de voz, não apenas a
   pcm.fill(0, 10000 * 2, 22000 * 2);
   assert.throws(() => inspectSpeech(pcm, timeline()), /fora de sincronia/);
 });
+
+test('qualidade valida o intervalo reservado para a risada',()=>{
+ const valid={...timeline(),reaction:{start:100,end:120,src:'laugh.wav',envelope:Array(20).fill(.7),speaker:'TICO' as const}};
+ assert.doesNotThrow(()=>validateTiming(valid,15));
+ assert.throws(()=>validateTiming({...valid,reaction:{...valid.reaction,start:80}},15),/risada/);
+ assert.throws(()=>validateTiming({...valid,reaction:{...valid.reaction,end:451}},15),/risada/);
+});

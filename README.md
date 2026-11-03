@@ -58,7 +58,7 @@ Em produção, o servidor na porta 3001 serve a interface compilada e a API. `PO
 5. “Meus vídeos” permite reabrir, duplicar, editar e exportar projetos anteriores.
 6. Faça backups JSON em Configurações. A restauração valida todo o arquivo antes de pedir confirmação para substituir os dados.
 
-São 28 histórias originais (7 em cada categoria), com 3 cenas de duração proporcional ao texto. Há movimento dos membros, respiração, piscadas e boca, além de caminhada, apontar, aceno, salto, riso, surpresa, tristeza, comemoração, negação, postura de braços cruzados e queda cômica. As ações são reutilizadas conforme cada história. O efeito `public/pop.wav` foi sintetizado matematicamente neste projeto; não contém gravações de terceiros. O áudio de cada cena começa na mesma posição na prévia e no MP4.
+São 28 histórias originais (7 em cada categoria), com 3 cenas de duração proporcional ao texto. Há movimento dos membros, respiração, piscadas e boca, além de caminhada, apontar, aceno, salto, riso, surpresa, tristeza, comemoração, negação, postura de braços cruzados e queda cômica. As ações são reutilizadas conforme cada história. Vídeos de Humor com efeitos sonoros ativos recebem uma risada neural curta depois da última fala, com espaço próprio e boca sincronizada. O efeito `public/pop.wav` foi sintetizado matematicamente neste projeto; não contém gravações de terceiros. O áudio de cada cena começa na mesma posição na prévia e no MP4.
 
 A exportação tem 1080×1920, 30 fps, 15 ou 30 segundos, H.264/yuv420p e AAC quando os efeitos estão ativos. Falas e legendas são incorporadas ao vídeo. Os tempos de entrada e saída podem ser consultados por cena no editor. Textos excessivos impedem exportação até serem reduzidos ou receberem 30 segundos.
 

@@ -10,13 +10,20 @@ request = json.load(sys.stdin)
 text = request['text'].strip()
 if not text or len(text) > 500: raise ValueError('Fala inválida (1–500 caracteres).')
 voice = {'PALITO': 'pm_alex', 'TICO': 'pf_dora'}[request['speaker']]
+speed = {'PALITO': .94, 'TICO': .96}[request['speaker']]
 output = Path(request['output'])
 if output.exists(): raise FileExistsError('O arquivo já existe.')
 engine = Kokoro(str(assets/'kokoro-v1.0.onnx'), str(assets/'voices-v1.0.bin'))
-samples, rate = engine.create(text, voice=voice, speed=1.0, lang='pt-br')
+samples, rate = engine.create(text, voice=voice, speed=speed, lang='pt-br')
 samples = np.asarray(samples)
 if not len(samples) or not np.isfinite(samples).all() or np.max(np.abs(samples)) < .001:
     raise ValueError('O motor neural não produziu uma fala válida.')
+# Equalize perceived loudness between the two voices without clipping. This
+# keeps dialogue clear while preserving the neural timbre and natural pauses.
+peak = float(np.max(np.abs(samples)))
+rms = float(np.sqrt(np.mean(samples*samples)))
+gain = min(2.0, .10/max(rms,.00001), .88/max(peak,.00001))
+samples = np.clip(samples*gain,-.95,.95)
 output.parent.mkdir(parents=True, exist_ok=True)
 sf.write(str(output), samples, rate, subtype='PCM_16')
 # Measure the actual written PCM file, used unchanged by the video renderer.

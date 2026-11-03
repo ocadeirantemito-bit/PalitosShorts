@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill,Audio,Sequence,interpolate,staticFile,useCurrentFrame} from 'remotion';
 import {sceneTimes,type Project} from './model';
-import {narrationMouthAt,type Narration} from './narration';
+import {narrationMouthAt,narrationReactionMouthAt,type Narration} from './narration';
 import {Character,type CharacterAction} from './Character';
 import {Foreground} from './Scenery';
 import {Scenery} from './Scenery';
@@ -10,6 +10,8 @@ export type VideoProps={project:Project;narration?:Narration};
 export function Video({project,narration}:VideoProps){
  const frame=useCurrentFrame();const times=narration?.scenes??sceneTimes(project);const index=Math.max(0,times.findIndex(s=>frame>=s.start&&frame<s.end));const scene=project.scenes[index];const t=frame-times[index].start;
  const mouthLevel=narration?narrationMouthAt(narration.scenes[index],frame):undefined;
+ const reactionMouth=narration?narrationReactionMouthAt(narration.reaction,frame):0;
+ const ticaMouth=reactionMouth||(scene.speaker==='TICO'?mouthLevel:0);
  const fade=interpolate(t,[0,8],[0,1],{extrapolateRight:'clamp'});
  const setting=project.setting||(project.category==='Humor'?'sala':project.category==='Reflexões'?'cafe':'parque');
  const sceneLength=Math.max(1,times[index].end-times[index].start),progress=Math.min(1,t/sceneLength);
@@ -25,7 +27,7 @@ export function Video({project,narration}:VideoProps){
   <Scenery setting={setting} frame={frame}/>
   <StoryObject kind={storyProp} x={storyX} y={storyY} t={t} active/>
   <Character x={330} female={false} action={scene.speaker==='PALITO'?scene.action:inactiveAction} t={t} active={scene.speaker==='PALITO'} look={1} depth={scene.speaker==='PALITO'?1.035:.97} mouthLevel={narration?(scene.speaker==='PALITO'?mouthLevel:0):undefined}/>
-  <Character x={745} female={true} action={scene.speaker==='TICO'?scene.action:inactiveAction} t={t+17} active={scene.speaker==='TICO'} look={-1} depth={scene.speaker==='TICO'?1.035:.97} mouthLevel={narration?(scene.speaker==='TICO'?mouthLevel:0):undefined}/>
+  <Character x={745} female={true} action={scene.speaker==='TICO'?scene.action:inactiveAction} t={t+17} active={scene.speaker==='TICO'||reactionMouth>0} look={-1} depth={scene.speaker==='TICO'||reactionMouth>0?1.035:.97} mouthLevel={narration?ticaMouth:undefined}/>
   <ActionAccent action={scene.action} x={activeX} y={805} t={t}/>
   <Foreground setting={setting} frame={frame}/>
  </g>
@@ -39,6 +41,7 @@ export function Video({project,narration}:VideoProps){
  <div style={{position:'absolute',bottom:280,left:100,right:100,textAlign:'center',fontSize:38,fontWeight:700,lineHeight:1.3,opacity:fade}}>{scene.caption}</div>
  <div style={{position:'absolute',bottom:185,left:100,right:100,display:'flex',gap:12}}>{times.map((s,i)=><div key={i} style={{height:8,flex:1,borderRadius:8,background:i<=index?'#8055dd':'#24232c20'}}/>)}</div>
  {narration?.scenes.map((s,i)=><Sequence key={`speech-${i}`} from={s.audioStart} durationInFrames={s.audioEnd-s.audioStart}><Audio src={s.src} volume={1}/></Sequence>)}
+ {narration?.reaction&&<Sequence from={narration.reaction.start} durationInFrames={narration.reaction.end-narration.reaction.start}><Audio src={narration.reaction.src} volume={.82}/></Sequence>}
  {project.sound&&times.map((s,i)=><Sequence key={i} from={s.start} durationInFrames={8}><Audio src={staticFile('pop.wav')} volume={narration ? 0.12 : 0.2}/></Sequence>) }
  </AbsoluteFill>;
 }

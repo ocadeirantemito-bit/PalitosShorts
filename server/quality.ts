@@ -39,6 +39,12 @@ export function validateTiming(narration: Narration, durationSeconds: number): v
     previous = scene.end;
   }
   if (previous !== narration.durationInFrames) throw new Error('Há uma lacuna no final da composição.');
+  if(narration.reaction){
+    const reaction=narration.reaction,last=narration.scenes.at(-1)!;
+    if(!Number.isInteger(reaction.start)||!Number.isInteger(reaction.end)||reaction.start<last.audioEnd||reaction.end<=reaction.start||reaction.end>last.end||!reaction.src||!reaction.envelope.length||reaction.envelope.length>reaction.end-reaction.start||reaction.envelope.some(n=>!Number.isFinite(n)||n<0||n>1)){
+      throw new Error('A risada está fora do tempo reservado ou possui dados inválidos.');
+    }
+  }
 }
 
 export function inspectSpeech(pcm: Buffer, narration: Narration, rate = 8000): QualityReport['speech'] {

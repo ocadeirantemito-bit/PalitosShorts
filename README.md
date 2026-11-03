@@ -14,7 +14,7 @@ Esta entrega implementa **somente a Etapa A**, aproveitando a aplicação existe
 
 **Vozes:** eSpeak NG, PALITO `pt-br+m3` e TICA `pt-br+f3`. As vozes são distintas, mas robóticas. Piper neural não foi instalado: o host de modelos foi bloqueado pela política de rede. Veja [instalação, qualidade e licenças](docs/VOICES.md). `npm ci` já instala ambas as vozes.
 
-**Requisito adicional:** FFmpeg e FFprobe no PATH para o controle de qualidade, além de Node e Chrome/Chromium. No Windows, instale uma distribuição do FFmpeg e adicione sua pasta `bin` ao PATH; alternativamente defina `FFMPEG_PATH` e `FFPROBE_PATH` com os caminhos completos dos executáveis. Confira `ffmpeg -version` e `ffprobe -version` antes de `npm run dev`. O código TTS usa WASM compatível com Node no Windows, mas a validação executada aqui foi em Linux/Chromium, sem teste em Windows físico.
+**Requisitos adicionais:** Node e Google Chrome ou Microsoft Edge. A renderização e a verificação básica usam componentes incluídos no Remotion; não é necessário instalar FFmpeg separadamente para criar o MP4. Quando FFmpeg está no PATH, o aplicativo também decodifica o arquivo inteiro e analisa amostras de áudio e imagem. `FFMPEG_PATH` e `FFPROBE_PATH` continuam disponíveis para instalações personalizadas. O código TTS usa WASM compatível com Node no Windows, mas a validação executada aqui foi em Linux/Chromium, sem teste em Windows físico.
 
 **Evidência da entrega:** `examples/humor-15s-com-vozes.mp4` e `examples/motivacao-30s-com-vozes.mp4`. Cada arquivo tem um JSON ao lado com o roteiro efetivamente usado, vozes, tempos e relatório. Verificados H.264, 1080×1920, 30fps, AAC, duração de 15/30s, decodificação completa, energia de voz dentro das janelas esperadas e imagens por cena. A checagem não transcreve palavras nem faz reconhecimento semântico dos personagens; reveja o vídeo antes de publicar.
 
@@ -24,6 +24,8 @@ Os testes de navegador cobrem duas gerações reais, reprodução, aprovação, 
 Estúdio em português para criar histórias com Palito e Tico. React + TypeScript + Vite, composição SVG em Remotion e backend Node para exportação real. Sem chave de API, IA paga, fontes remotas ou imagens de terceiros.
 
 ## Executar
+
+No Windows, dê dois cliques em **INICIAR-PALITO-SHOW.cmd**. Ele encontra o Chrome ou Edge instalado, evita o download de um segundo navegador e mostra no terminal qual navegador será usado. Mantenha a janela aberta e acesse `http://localhost:5173`.
 
 Requisitos: Node.js 22 ou 24, npm e Chromium/Chrome. Chromium precisa das bibliotecas do sistema (em Linux, instale pelo gerenciador da distribuição). No Windows, instale o Google Chrome normalmente e indique seu executável, por exemplo no PowerShell:
 
@@ -100,7 +102,7 @@ O teste de renderização gera `examples/palito-show.mp4`, verifica codec, taman
 
 ## Atualização visual: dupla desenhada e cenários
 
-Palito tem apresentação masculina, cabelo curto, camiseta e tênis; Tica tem apresentação feminina, cabelo longo, brincos, blusa e tênis. O identificador interno TICO foi preservado para abrir projetos e backups existentes. Corpos, mãos, pés e rostos são vetoriais; braços e pernas têm articulações, os personagens respiram, piscam, olham um para o outro e a boca continua sincronizada ao áudio.
+Palito e Tica usam o modelo simples de bonecos-palito: tronco, braços e pernas são linhas; mãos, cabeça e expressões usam formas vetoriais mínimas. Palito tem cabelo curto e gravata amarela; Tica tem cabelo longo e laço roxo. O identificador interno TICO foi preservado para abrir projetos e backups existentes. Os personagens respiram, piscam, olham um para o outro e a boca continua sincronizada ao áudio.
 
 Sala com sofá/janela/luminária, parque com árvores/banco/caminho e café com balcão/mesas. Os cenários têm movimento ambiente, profundidade em primeiro plano, luz e enquadramento que acompanha quem está falando. A categoria escolhe automaticamente o cenário; o editor permite selecionar outro.
 

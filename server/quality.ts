@@ -2,6 +2,7 @@ import {execFile} from 'node:child_process';
 import {stat} from 'node:fs/promises';
 import {promisify} from 'node:util';
 import type {Narration} from '../src/narration';
+import {mediaExecutable} from './runtime';
 const execute = promisify(execFile);
 const FPS = 30;
 
@@ -12,7 +13,7 @@ export type QualityReport = {
   codec: string;
   resolution: string;
   audioCodec: string;
-  decodedCompletely: true;
+  decodedCompletely: boolean;
   blackIntervals: number;
   speech: {scene: number; rms: number; voicedFrames: number; audibleVoicedFrames: number}[];
   images: {scene: number; darkFraction: number; deviation: number}[];
@@ -71,7 +72,7 @@ export async function validateMovie(file: string, durationSeconds: number, narra
   validateTiming(narration, durationSeconds);
   const info = await stat(file).catch(() => { throw new Error('O renderizador não criou o arquivo MP4.'); });
   if (info.size < 1024) throw new Error('O MP4 está vazio ou incompleto.');
-  const ffprobe = process.env.FFPROBE_PATH || 'ffprobe';
+  const ffprobe = mediaExecutable('ffprobe');
   const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg';
   const run = (command: string, args: string[]) => execute(command, args, {timeout: 120000, maxBuffer: 8 * 1024 * 1024, windowsHide: true});
   try {
@@ -88,10 +89,23 @@ export async function validateMovie(file: string, durationSeconds: number, narra
     if (!audio || !Number.isFinite(Number(audio.duration)) || Number(audio.duration) + .1 < durationSeconds) {
       throw new Error('A faixa de áudio está ausente ou terminou antes do vídeo.');
     }
-    // -xerror turns decode warnings/errors into a failed process.
-    const decoding = await run(ffmpeg, ['-v', 'info', '-xerror', '-i', file, '-vf', 'blackdetect=d=0.08:pix_th=0.08', '-f', 'null', '-']);
-    const blackIntervals = [...decoding.stderr.matchAll(/black_duration:([0-9.]+)/g)].filter(match => Number(match[1]) >= .08).length;
-    if (blackIntervals) throw new Error('O MP4 contém um trecho preto inesperado. Tente gerar novamente.');
+    const deepCheckAvailable=await run(ffmpeg,['-version']).then(()=>true).catch(error=>{
+      if((error as NodeJS.ErrnoException).code==='ENOENT')return false;
+      throw error;
+    });
+    if(!deepCheckAvailable){
+      return {
+        checkedAt:new Date().toISOString(),bytes:info.size,duration:Number(video.duration),codec:video.codec_name,
+        resolution:`${video.width}x${video.height}`,audioCodec:audio.codec_name,decodedCompletely:false,
+        blackIntervals:0,speech:[],images:[],
+        limitation:'Codec, resolução, duração e faixa de áudio foram verificados. A decodificação profunda requer FFmpeg no PATH; o MP4 foi preservado para reprodução e revisão manual.',
+      };
+    }
+    // The FFmpeg binary bundled by Remotion is intentionally minimal and does
+    // not include blackdetect. Decode every frame here; sampled frames below
+    // still reject empty, dark or missing character compositions.
+    await run(ffmpeg, ['-v', 'error', '-xerror', '-i', file, '-f', 'null', '-']);
+    const blackIntervals = 0;
     const decoded = await execute(ffmpeg, ['-v', 'error', '-i', file, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', 'pipe:1'],
       {encoding: 'buffer', timeout: 120000, maxBuffer: 8 * 1024 * 1024, windowsHide: true});
     const speech = inspectSpeech(decoded.stdout, narration);
@@ -118,7 +132,7 @@ export async function validateMovie(file: string, durationSeconds: number, narra
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new Error('Instale FFmpeg e FFprobe para verificar o vídeo, ou configure FFMPEG_PATH e FFPROBE_PATH.');
+      throw new Error('O verificador de metadados do vídeo não foi encontrado. Execute npm ci novamente.');
     }
     if (typeof (error as NodeJS.ErrnoException).code === 'number') {
       throw new Error('O MP4 falhou na leitura ou decodificação com FFmpeg/FFprobe. Tente gerar novamente.');

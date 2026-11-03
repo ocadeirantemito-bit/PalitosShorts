@@ -4,9 +4,9 @@
 2. Instale **Python 3.12 de 64 bits** pelo site oficial https://www.python.org/downloads/windows/ (inclua o Python Launcher `py`).
 3. Na pasta extraída, dê dois cliques em **INSTALAR-VOZES.cmd**. Aguarde a instalação e o teste. A primeira vez precisa de Internet e baixa cerca de 340 MB de modelo/vozes, além das bibliotecas. Reserve pelo menos 2 GB de disco; mais memória pode melhorar o desempenho.
 4. Ao terminar, abra **TESTAR-VOZES.cmd**. Serão gerados e abertos dois WAVs: `examples/voz-neural-palito.wav` e `examples/voz-neural-tico.wav` (Tico é o identificador antigo de Tica).
-5. Para usar no app, instale as dependências Node com `npm ci` e execute `npm run dev`, conforme README. Reinicie o servidor se ele já estava aberto. A interface deve mostrar **Duas vozes neurais pt-BR · Kokoro local**. Gere um vídeo novo; MP4s antigos não mudam.
+5. Para usar no app, abra **INICIAR-PALITO-SHOW.cmd**. Ele instala as dependências Node quando necessário, usa o Chrome ou Edge já instalado e inicia o servidor. A interface deve mostrar **Duas vozes neurais pt-BR · Kokoro local**. Gere um vídeo novo; MP4s antigos não mudam.
 
-Não existe ainda instalador Electron do aplicativo. Os arquivos CMD automatizam somente a instalação/teste das vozes. É preciso manter Node e Chrome/Chromium, FFmpeg e FFprobe para o vídeo, como documentado no README.
+Não existe ainda instalador Electron do aplicativo. É preciso manter Node e Chrome ou Edge instalados. Os componentes necessários para renderizar e conferir os metadados do MP4 acompanham o Remotion; uma instalação separada do FFmpeg habilita apenas a verificação profunda adicional.
 
 ## O que foi instalado
 

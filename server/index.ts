@@ -1,3 +1,4 @@
+import {everydayCatalog} from '../src/everyday';
 import express from 'express';
 import {bundle} from '@remotion/bundler';
 import {makeCancelSignal,renderMedia,selectComposition} from '@remotion/renderer';
@@ -14,7 +15,7 @@ import {prepareStory} from './story';
 import {findBrowserExecutable} from './runtime';
 const app=express();app.use(express.json({limit:'100kb'}));
 const root=process.cwd(),output=path.join(root,'renders');await mkdir(output,{recursive:true});
-type Job={status:'queued'|'speaking'|'rendering'|'checking'|'done'|'error';progress:number;message:string;error?:string;file?:string;project?:Project};
+type Job={status:'queued'|'speaking'|'rendering'|'checking'|'done'|'error';progress:number;message:string;error?:string;file?:string;project?:Project;narration?:ReturnType<typeof buildNarration>};
 const jobs=new Map<string,Job>();let busy=false;
 const browserExecutable=findBrowserExecutable();
 const browserReady=Boolean(browserExecutable&&existsSync(browserExecutable));
@@ -37,14 +38,15 @@ app.post('/api/render',async(req,res)=>{
   let project=prepareStory(parsed.data);
   let reactionClip:{duration:number;envelope:number[];src:string}|undefined;
   let reactionInfo:unknown;
+  // Audio supplied and explicitly authorized by the user; not labeled CC0.
   if(project.category==='Humor'&&project.sound){
-   job.status='speaking';job.message='Criando a risada da cena final…';
-   const reactionPath=path.join(directory,'reaction.wav');
-   const reactionAudio=await synthesize('Ha, ha, ha!','TICO',reactionPath);const reactionBytes=await readFile(reactionPath);
-   reactionClip={duration:reactionAudio.duration,envelope:reactionAudio.envelope,src:`data:audio/wav;base64,${reactionBytes.toString('base64')}`};
-   reactionInfo={speaker:'TICO',role:'reaction',voice:reactionAudio.voice,engine:reactionAudio.engine,duration:reactionAudio.duration,sha256:createHash('sha256').update(reactionBytes).digest('hex')};
+   const bytes=await readFile(path.join(root,'public/laugh.wav'));
+   const info=JSON.parse(await readFile(path.join(root,'public/laugh.json'),'utf8'));
+   await writeFile(path.join(directory,'reaction.wav'),bytes);
+   reactionClip={duration:info.duration,envelope:info.envelope,src:`data:audio/wav;base64,${bytes.toString('base64')}`};
+   reactionInfo={role:'reaction',engine:'user-recording',voice:'laughing-meme_NFCpcW5',duration:info.duration};
   }
-  const alternatives=project.status==='roteiro'?catalog.filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
+  const alternatives=project.status==='roteiro'?(project.theme?everydayCatalog.filter(p=>p.theme===project.theme):catalog).filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
   let prepared:ReturnType<typeof buildNarration>|undefined;
   let voiceInfo:unknown[]=[];
   for(let attempt=0;attempt<=alternatives.length;attempt++){
@@ -61,6 +63,7 @@ app.post('/api/render',async(req,res)=>{
   }
   if(!prepared)throw Error('Não foi possível ajustar as falas à duração. Escolha 30 segundos.');
   const narration=prepared;job.project=project;
+  job.narration={...narration,scenes:narration.scenes.map((s,i)=>({...s,src:`/api/audio/${id}/${i}.wav`})),reaction:narration.reaction?{...narration.reaction,src:`/api/audio/${id}/reaction.wav`}:undefined};
   job.status='rendering';job.progress=.25;job.message='Preparando o renderizador…';
   const serveUrl=await getServeUrl();
   job.message='Abrindo o navegador instalado…';

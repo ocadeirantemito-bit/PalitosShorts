@@ -30,11 +30,11 @@ test('roteiro longo é rejeitado sem cortar áudio nem acelerar vozes',()=>{
  assert.equal(buildNarration({...project,duration:30},[clip(5),clip(5),clip(5)]).durationInFrames,900);
 });
 
-test('boca antecipa um quadro, acompanha o envelope e fecha fora da fala',()=>{
+test('boca acompanha o áudio sem antecipar abertura no silêncio',()=>{
  const project=generate('Humor',15,true);
  const scene=buildNarration(project,[clip(1),clip(2),clip(3)]).scenes[0];
  assert.equal(narrationMouthAt(scene,scene.audioStart-1),0);
- assert.ok(narrationMouthAt(scene,scene.audioStart)>0);
+ assert.equal(narrationMouthAt(scene,scene.audioStart),0);
  assert.ok(narrationMouthAt(scene,scene.audioStart+1)>.7);
  assert.equal(narrationMouthAt(scene,scene.audioEnd),0);
  assert.equal(narrationMouthAt(scene,scene.end-1),0);
@@ -53,7 +53,9 @@ test('risada entra depois da última fala e também movimenta a boca',()=>{
  const timeline=buildNarration(project,[clip(1),clip(1),clip(1)],reaction);
  assert.ok(timeline.reaction);assert.equal(timeline.reaction.start-timeline.scenes[2].audioEnd,REACTION_GAP_FRAMES);
  assert.ok(timeline.reaction.end<=timeline.scenes[2].end);
- assert.ok(narrationReactionMouthAt(timeline.reaction,timeline.reaction.start)>0);
+ assert.equal(narrationReactionMouthAt(timeline.reaction,timeline.reaction.start),0);
  assert.ok(narrationReactionMouthAt(timeline.reaction,timeline.reaction.start+1)>0);
  assert.equal(narrationReactionMouthAt(timeline.reaction,timeline.reaction.end),0);
 });
+
+test("pausas entre falas são limitadas mesmo em roteiros curtos",()=>{const n=buildNarration(generate("Humor",15,true),[clip(1),clip(1),clip(1)]);for(const s of n.scenes.slice(0,-1))assert.ok(s.end-s.audioEnd<=18);assert.equal(n.scenes.at(-1)?.end,450);});

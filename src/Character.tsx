@@ -6,26 +6,30 @@ type CharacterProps={x:number;female:boolean;action:CharacterAction;t:number;act
 
 export function Character({x,female,action,t,active,mouthLevel,look=female?-1:1,depth=1}:CharacterProps){
  const ink='#211f2a',hair=female?'#603822':'#19171c',accent=female?'#9137bd':'#f1ba16',face='#fffaf0';
- const walk=action==='andar'?Math.sin(t*.16)*25:0;
- const jump=['pular','comemorar'].includes(action)?-Math.abs(Math.sin(t*.12))*62:0;
- const laugh=action==='rir'?Math.sin(t*.7)*4:0;
- const breath=Math.sin(t*.075)*2;
- const y=810+jump+breath+laugh;
- const slipPhase=action==='escorregar'?Math.sin(Math.min(t/42,1)*Math.PI/2):0;
- const slideX=slipPhase*18*look;
- const deny=action==='negar'?Math.sin(t*.22)*5:0;
+ // Single bounded gesture, then rest. No perpetual bouncing or scene-long sliding.
+ const gesture=Math.sin(Math.PI*Math.min(1,Math.max(0,t)/48));
+ const walk=action==='andar'?Math.sin(t*.16)*12*gesture:0;
+ const jump=action==='pular'?-Math.sin(Math.PI*Math.min(1,Math.max(0,t-8)/24))*30:0;
+ const y=810+jump;
+ const slipPhase=action==='escorregar'?gesture:0;
+ const slideX=0;
+ const deny=action==='negar'?Math.sin(t*.22)*3*gesture:0;
  const blink=t%130>123;
  const mouth=mouthLevel===undefined?(active?Math.abs(Math.sin(t*.5)):.04):mouthLevel;
  const idle=Math.sin(t*.08)*5;
- const wave=Math.sin(t*.28)*22;
+ const wave=Math.sin(t*.28)*12*gesture;
  const rightHand=action==='acenar'?{x:101,y:136+wave}:action==='apontar'?{x:137,y:208}:['pular','comemorar'].includes(action)?{x:100,y:125}:action==='escorregar'?{x:116,y:236}:{x:88,y:278+idle};
  const leftHand=['pular','comemorar'].includes(action)?{x:-100,y:125}:action==='escorregar'?{x:-116,y:238}:{x:-88,y:278-idle};
- const headTurn=look*(active?3:5)+deny,eyeShift=look*(active?4:2);
+ rightHand.x=88+(rightHand.x-88)*gesture;
+ rightHand.y=278+idle+(rightHand.y-278-idle)*gesture;
+ leftHand.x=-88+(leftHand.x+88)*gesture;
+ leftHand.y=278-idle+(leftHand.y-278+idle)*gesture;
+ const headTurn=deny,eyeShift=look*(active?4:2);
  const legLeft=-43+walk-slipPhase*10,legRight=45-walk+slipPhase*15;
- const armPath=(side:-1|1,hand:{x:number;y:number})=>`M${side*18} 190 Q${side*53} ${220-slipPhase*8} ${hand.x} ${hand.y}`;
+ const armPath=(side:-1|1,hand:{x:number;y:number})=>`M0 184 Q${side*53} ${220-slipPhase*8} ${hand.x} ${hand.y}`;
  return <g data-character={female?'TICA':'PALITO'} stroke={ink} strokeLinecap="round" strokeLinejoin="round">
-  <ellipse cx={x} cy="1254" rx={88*depth} ry={14*depth} fill={ink} opacity=".13" stroke="none"/>
-  <g transform={`translate(${x+walk*.35+slideX},${y}) scale(${depth})`}>
+  <ellipse cx={x} cy={810+428*depth} rx={82*depth} ry={7*depth} fill={ink} opacity=".13" stroke="none"/>
+  <g transform={`translate(${x+slideX},${y}) scale(${depth})`}>
    {female&&<path d="M-69 48Q-101 114-78 193Q-65 218-45 225L-36 175H42L48 225Q78 211 85 180Q102 94 64 43Z" fill={hair} strokeWidth="7"/>}
    <g fill="none" strokeWidth="12"><path d="M0 174L0 302"/><path d={`M0 300Q-15 349 ${legLeft} 420`}/><path d={`M0 300Q17 350 ${legRight} 420`}/></g>
    <path d={`M${legLeft-25} 422h50`} fill="none" strokeWidth="13"/><path d={`M${legRight-25} 422h50`} fill="none" strokeWidth="13"/>

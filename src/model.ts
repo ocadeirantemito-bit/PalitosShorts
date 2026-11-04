@@ -1,8 +1,9 @@
 import {z} from 'zod';
 export const categories=['Humor','Motivação','Saudações','Reflexões'] as const;
+export const themes=['Trabalho','Salário e boletos','Casal','Solteiro','Sextou e bebidas','Cansaço e rotina','Motivação diária','Prosperidade'] as const;
 export const actions=['falar','rir','surpresa','andar','acenar','pular','apontar','triste','comemorar','negar','cruzar','escorregar'] as const;
 export const sceneSchema=z.object({speaker:z.enum(['PALITO','TICO']),line:z.string().trim().min(1).max(240),caption:z.string().max(240),action:z.enum(actions)});
-export const projectSchema=z.object({id:z.string().min(1).max(100),title:z.string().trim().min(1).max(90),category:z.enum(categories),duration:z.union([z.literal(15),z.literal(30)]),background:z.enum(['creme','azul','lilas']),setting:z.enum(['sala','parque','cafe']).optional(),scenes:z.array(sceneSchema).min(2).max(8),created:z.string(),status:z.enum(['roteiro','editado','exportado']),renderId:z.string().regex(/^[a-f0-9-]{36}$/).optional(),approved:z.boolean().optional(),sound:z.boolean()});
+export const projectSchema=z.object({id:z.string().min(1).max(100),title:z.string().trim().min(1).max(90),category:z.enum(categories),theme:z.enum(themes).optional(),duration:z.union([z.literal(15),z.literal(30)]),background:z.enum(['creme','azul','lilas']),setting:z.enum(['sala','parque','cafe']).optional(),scenes:z.array(sceneSchema).min(2).max(8),created:z.string(),status:z.enum(['roteiro','editado','exportado']),renderId:z.string().regex(/^[a-f0-9-]{36}$/).optional(),approved:z.boolean().optional(),sound:z.boolean()});
 export type Project=z.infer<typeof projectSchema>;
 export type Scene=z.infer<typeof sceneSchema>;
 export const settingsSchema=z.object({theme:z.enum(['dark','light']),favorite:z.enum(categories),duration:z.union([z.literal(15),z.literal(30)]),sound:z.boolean()});

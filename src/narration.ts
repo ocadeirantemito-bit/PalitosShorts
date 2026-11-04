@@ -56,14 +56,14 @@ export function buildNarration(project: Project, clips: NarrationClip[], reactio
     throw new Error(`As falas completas precisam de pelo menos ${(minimum / NARRATION_FPS).toFixed(1)} segundos. Gere um roteiro mais curto ou escolha 30 segundos; nenhuma fala será cortada ou acelerada.`);
   }
   const extra = durationInFrames - minimum;
-  const holdPerScene = Math.floor(extra / clips.length);
+  const holdPerScene = Math.min(6, Math.floor(extra / clips.length));
   let cursor = 0;
   let reaction:NarrationReaction|undefined;
   const scenes = clips.map((clip, index): NarrationScene => {
     const start = cursor;
     const audioStart = start + SPEECH_PREROLL_FRAMES;
     const audioEnd = audioStart + lengths[index];
-    const hold = holdPerScene + (index < extra % clips.length ? 1 : 0);
+    const hold = index===clips.length-1 ? extra-holdPerScene*(clips.length-1) : holdPerScene;
     if(reactionClip&&index===clips.length-1){
       const reactionStart=audioEnd+REACTION_GAP_FRAMES;
       reaction={start:reactionStart,end:reactionStart+reactionLength,src:reactionClip.src,envelope:[...reactionClip.envelope],speaker:'TICO'};
@@ -82,13 +82,13 @@ export function buildNarration(project: Project, clips: NarrationClip[], reactio
 export function narrationMouthAt(scene: NarrationScene, frame: number): number {
   if (frame < scene.audioStart || frame >= scene.audioEnd) return 0;
   const index=Math.floor(frame-scene.audioStart);
-  const energy=Math.max(scene.envelope[index]??0,(scene.envelope[index+1]??0)*.72);
+  const energy=scene.envelope[index]??0;
   return energy<.065?0:Math.min(1,.12+energy*.82);
 }
 
 export function narrationReactionMouthAt(reaction:NarrationReaction|undefined,frame:number){
  if(!reaction||frame<reaction.start||frame>=reaction.end)return 0;
  const index=Math.floor(frame-reaction.start);
- const energy=Math.max(reaction.envelope[index]??0,(reaction.envelope[index+1]??0)*.72);
+ const energy=reaction.envelope[index]??0;
  return energy<.065?0:Math.min(1,.12+energy*.82);
 }

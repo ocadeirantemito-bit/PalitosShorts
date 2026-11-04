@@ -7,7 +7,7 @@ const bridges:Record<Project['category'],[string,string]>={
  'Reflexões':['Às vezes eu procuro uma resposta enorme e esqueço de prestar atenção no que acontece bem aqui.','Quando a gente escuta com calma, as coisas pequenas mostram um valor que a pressa não deixa enxergar.']
 };
 export function prepareStory(project:Project):Project{
- if(project.status!=='roteiro'||project.duration!==30||project.scenes.length!==3)return structuredClone(project);
+ if(project.theme||project.status!=='roteiro'||project.duration!==30||project.scenes.length!==3)return structuredClone(project);
  const [a,b]=bridges[project.category];
  const extra:Scene[]=[{speaker:'PALITO',line:a,caption:'',action:'apontar'},{speaker:'TICO',line:b,caption:'',action:'acenar'}];
  return {...structuredClone(project),scenes:[...project.scenes.slice(0,2),...extra,project.scenes[2]]};

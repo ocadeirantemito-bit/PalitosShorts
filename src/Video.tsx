@@ -5,30 +5,25 @@ import {narrationMouthAt,narrationReactionMouthAt,type Narration} from './narrat
 import {Character,type CharacterAction} from './Character';
 import {Foreground} from './Scenery';
 import {Scenery} from './Scenery';
-import {ActionAccent,inferStoryProp,StoryObject} from './SceneProps';
+import {inferStoryProp,SupportedStoryObject} from './SceneProps';
 export type VideoProps={project:Project;narration?:Narration};
 export function Video({project,narration}:VideoProps){
  const frame=useCurrentFrame();const times=narration?.scenes??sceneTimes(project);const index=Math.max(0,times.findIndex(s=>frame>=s.start&&frame<s.end));const scene=project.scenes[index];const t=frame-times[index].start;
  const mouthLevel=narration?narrationMouthAt(narration.scenes[index],frame):undefined;
- const reactionMouth=narration?narrationReactionMouthAt(narration.reaction,frame):0;
+ const reactionMouth=0; // Recorded laughter is a background effect, not character dialogue.
  const ticaMouth=reactionMouth||(scene.speaker==='TICO'?mouthLevel:0);
  const fade=interpolate(t,[0,8],[0,1],{extrapolateRight:'clamp'});
  const setting=project.setting||(project.category==='Humor'?'sala':project.category==='Reflexões'?'cafe':'parque');
- const sceneLength=Math.max(1,times[index].end-times[index].start),progress=Math.min(1,t/sceneLength);
- const cameraZoom=1.018+progress*.026,cameraPan=scene.speaker==='PALITO'?18:-18;
- const storyProp=inferStoryProp(project,scene),activeX=scene.speaker==='PALITO'?330:745;
- const floorProps=['halter','pizza','presente'].includes(storyProp),airProps=['chuva','wifi'].includes(storyProp);
- const storyX=floorProps?540:scene.speaker==='PALITO'?477:596,storyY=floorProps?1215:airProps?930:1095;
+ const storyProp=project.scenes.map(s=>inferStoryProp(project,s)).find(kind=>kind!=='nenhum')||'nenhum';
  const inactiveAction:CharacterAction=scene.action==='surpresa'?'surpresa':'parado';
  const bg={creme:'#fff7e8',azul:'#e9f5ff',lilas:'#f0eaff'}[project.background];
  return <AbsoluteFill style={{background:bg,fontFamily:'Arial, sans-serif',color:'#24232c',overflow:'hidden'}}>
  <svg viewBox="0 0 1080 1920" width="1080" height="1920" style={{position:'absolute'}}>
- <g transform={`translate(540 1080) scale(${cameraZoom}) translate(${-540+cameraPan} -1080)`}>
+ <g>
   <Scenery setting={setting} frame={frame}/>
-  <StoryObject kind={storyProp} x={storyX} y={storyY} t={t} active/>
-  <Character x={330} female={false} action={scene.speaker==='PALITO'?scene.action:inactiveAction} t={t} active={scene.speaker==='PALITO'} look={1} depth={scene.speaker==='PALITO'?1.035:.97} mouthLevel={narration?(scene.speaker==='PALITO'?mouthLevel:0):undefined}/>
-  <Character x={745} female={true} action={scene.speaker==='TICO'?scene.action:inactiveAction} t={t+17} active={scene.speaker==='TICO'||reactionMouth>0} look={-1} depth={scene.speaker==='TICO'||reactionMouth>0?1.035:.97} mouthLevel={narration?ticaMouth:undefined}/>
-  <ActionAccent action={scene.action} x={activeX} y={805} t={t}/>
+  <SupportedStoryObject kind={storyProp} t={frame}/>
+  <Character x={330} female={false} action={scene.speaker==='PALITO'?scene.action:inactiveAction} t={t} active={scene.speaker==='PALITO'} look={1} depth={1} mouthLevel={narration?(scene.speaker==='PALITO'?mouthLevel:0):0}/>
+  <Character x={745} female={true} action={scene.speaker==='TICO'?scene.action:inactiveAction} t={t+17} active={scene.speaker==='TICO'||reactionMouth>0} look={-1} depth={1} mouthLevel={narration?ticaMouth:0}/>
   <Foreground setting={setting} frame={frame}/>
  </g>
  </svg>
@@ -41,7 +36,7 @@ export function Video({project,narration}:VideoProps){
  <div style={{position:'absolute',bottom:280,left:100,right:100,textAlign:'center',fontSize:38,fontWeight:700,lineHeight:1.3,opacity:fade}}>{scene.caption}</div>
  <div style={{position:'absolute',bottom:185,left:100,right:100,display:'flex',gap:12}}>{times.map((s,i)=><div key={i} style={{height:8,flex:1,borderRadius:8,background:i<=index?'#8055dd':'#24232c20'}}/>)}</div>
  {narration?.scenes.map((s,i)=><Sequence key={`speech-${i}`} from={s.audioStart} durationInFrames={s.audioEnd-s.audioStart}><Audio src={s.src} volume={1}/></Sequence>)}
- {narration?.reaction&&<Sequence from={narration.reaction.start} durationInFrames={narration.reaction.end-narration.reaction.start}><Audio src={narration.reaction.src} volume={.82}/></Sequence>}
+ {narration?.reaction&&<Sequence from={narration.reaction.start} durationInFrames={narration.reaction.end-narration.reaction.start}><Audio src={narration.reaction.src} volume={.32}/></Sequence>}
  {project.sound&&times.map((s,i)=><Sequence key={i} from={s.start} durationInFrames={8}><Audio src={staticFile('pop.wav')} volume={narration ? 0.12 : 0.2}/></Sequence>) }
  </AbsoluteFill>;
 }

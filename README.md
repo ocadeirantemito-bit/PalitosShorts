@@ -109,3 +109,7 @@ Sala com sofá/janela/luminária, parque com árvores/banco/caminho e café com 
 O texto da história pode colocar objetos na cena, como café, celular, presente, lista, halter, pizza, chuva ou Wi-Fi. Surpresa, riso, comemoração, tristeza e queda também recebem efeitos visuais próprios. As imagens `examples/visual-sala.png`, `visual-parque.png` e `visual-cafe.png` vêm da composição real. Vídeos já exportados preservam o desenho anterior; gere novamente para usar o novo visual.
 
 As vozes ainda são eSpeak sintéticas. O download de modelos neurais em huggingface.co continua bloqueado no ambiente atual. Foi salva uma adição desse domínio ao rascunho de rede, sem publicação. Depois de aplicar o acesso será necessário avaliar licença, português brasileiro, voz masculina/feminina, velocidade no computador e incorporar/testar o novo motor. A simples troca de pitch não torna as vozes neurais.
+
+### Séries e vídeos mais longos
+
+O menu inicial oferece as séries **Vida de trabalhador**, **Casal na vida real** e **Sextou sem dinheiro**, com episódios originais de 60 e 90 segundos, além das micro-histórias de 15 e 30 segundos. A risada enviada fica desligada por padrão; pode ser ativada no editor após conferir os direitos de uso. Veja [conteúdo e monetização](docs/CONTEUDO-E-MONETIZACAO.md) para o plano de publicação e acompanhamento de resultados.

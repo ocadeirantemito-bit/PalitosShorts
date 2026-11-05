@@ -59,3 +59,8 @@ test('risada entra depois da última fala e também movimenta a boca',()=>{
 });
 
 test("pausas entre falas são limitadas mesmo em roteiros curtos",()=>{const n=buildNarration(generate("Humor",15,true),[clip(1),clip(1),clip(1)]);for(const s of n.scenes.slice(0,-1))assert.ok(s.end-s.audioEnd<=18);assert.equal(n.scenes.at(-1)?.end,450);});
+
+ test('risada rejeita duração inválida antes de montar a linha do tempo',()=>{
+ const p=generate('Humor',15,true);
+ for(const duration of [NaN,Infinity,0,-1])assert.throws(()=>buildNarration(p,[clip(1),clip(1),clip(1)],{...clip(1),duration}),/reação inválido/);
+ });

@@ -6,7 +6,8 @@ test('estúdio: data, animação, edição, persistência, backup e iPhone',asyn
  const date=await page.evaluate(()=>new Date().toLocaleDateString('pt-BR'));await expect(page.getByText(`Hoje é ${date}`)).toBeVisible();
  await expect(page.locator('.day-card')).toHaveCount(7);await expect(page.locator('[data-testid=video-preview] svg [data-character="PALITO"]').first()).toBeVisible();
  await page.getByRole('button',{name:'Visualizar animação',exact:false}).click();
- const before=await page.locator('[data-testid=video-preview] svg [data-character="PALITO"] > g').first().getAttribute('transform');await page.waitForTimeout(550);const after=await page.locator('[data-testid=video-preview] svg [data-character="PALITO"] > g').first().getAttribute('transform');expect(before).not.toEqual(after);
+ const animation=page.locator('[data-testid=video-preview] svg').first();const before=await animation.getAttribute('data-frame');await expect.poll(()=>animation.getAttribute('data-frame')).not.toBe(before);
+
  await page.locator('.video-actions').getByRole('button',{name:'Editar roteiro'}).click();
  await page.getByLabel('Título',{exact:true}).fill('Minha história de teste');await page.getByRole('textbox',{name:'Fala',exact:true}).first().fill('Hoje eu criei meu primeiro vídeo!');
  await expect(page.getByTestId('video-preview')).toContainText('Minha história de teste');

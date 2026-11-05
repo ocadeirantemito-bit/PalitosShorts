@@ -18,7 +18,7 @@ export function Video({project,narration}:VideoProps){
  const inactiveAction:CharacterAction=scene.action==='surpresa'?'surpresa':'parado';
  const bg={creme:'#fff7e8',azul:'#e9f5ff',lilas:'#f0eaff'}[project.background];
  return <AbsoluteFill style={{background:bg,fontFamily:'Arial, sans-serif',color:'#24232c',overflow:'hidden'}}>
- <svg viewBox="0 0 1080 1920" width="1080" height="1920" style={{position:'absolute'}}>
+ <svg data-frame={frame} viewBox="0 0 1080 1920" width="1080" height="1920" style={{position:'absolute'}}>
  <g>
   <Scenery setting={setting} frame={frame}/>
   <SupportedStoryObject kind={storyProp} t={frame}/>

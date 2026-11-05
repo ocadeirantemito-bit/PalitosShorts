@@ -39,14 +39,14 @@ app.post('/api/render',async(req,res)=>{
   let reactionClip:{duration:number;envelope:number[];src:string}|undefined;
   let reactionInfo:unknown;
   // Audio supplied and explicitly authorized by the user; not labeled CC0.
-  if(project.category==='Humor'&&project.sound){
+  if(project.category==='Humor'&&project.sound&&project.laughter===true){
    const bytes=await readFile(path.join(root,'public/laugh.wav'));
    const info=JSON.parse(await readFile(path.join(root,'public/laugh.json'),'utf8'));
    await writeFile(path.join(directory,'reaction.wav'),bytes);
    reactionClip={duration:info.duration,envelope:info.envelope,src:`data:audio/wav;base64,${bytes.toString('base64')}`};
    reactionInfo={role:'reaction',engine:'user-recording',voice:'laughing-meme_NFCpcW5',duration:info.duration};
   }
-  const alternatives=project.status==='roteiro'?(project.theme?everydayCatalog.filter(p=>p.theme===project.theme):catalog).filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
+  const alternatives=project.status==='roteiro'&&project.duration<60?(project.theme?everydayCatalog.filter(p=>p.theme===project.theme):catalog).filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
   let prepared:ReturnType<typeof buildNarration>|undefined;
   let voiceInfo:unknown[]=[];
   for(let attempt=0;attempt<=alternatives.length;attempt++){

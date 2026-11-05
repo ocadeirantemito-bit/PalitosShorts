@@ -48,7 +48,7 @@ export function buildNarration(project: Project, clips: NarrationClip[], reactio
   });
   const durationInFrames = project.duration * NARRATION_FPS;
   const reactionLength=reactionClip?Math.ceil(reactionClip.duration*NARRATION_FPS):0;
-  if(reactionClip&&(!reactionClip.src||!reactionClip.envelope.length||reactionClip.envelope.some(n=>!Number.isFinite(n)||n<0||n>1))){
+  if(reactionClip&&(!Number.isFinite(reactionClip.duration)||reactionClip.duration<=0||!reactionClip.src||!reactionClip.envelope.length||reactionClip.envelope.some(n=>!Number.isFinite(n)||n<0||n>1))){
     throw new Error('Áudio de reação inválido.');
   }
   const minimum = lengths.reduce((sum, length) => sum + length + SPEECH_PREROLL_FRAMES + MIN_SPEECH_PAUSE_FRAMES, 0)+(reactionClip?REACTION_GAP_FRAMES+reactionLength:0);
@@ -56,7 +56,7 @@ export function buildNarration(project: Project, clips: NarrationClip[], reactio
     throw new Error(`As falas completas precisam de pelo menos ${(minimum / NARRATION_FPS).toFixed(1)} segundos. Gere um roteiro mais curto ou escolha 30 segundos; nenhuma fala será cortada ou acelerada.`);
   }
   const extra = durationInFrames - minimum;
-  const holdPerScene = Math.min(6, Math.floor(extra / clips.length));
+  const holdPerScene = project.duration>=60?Math.floor(extra/clips.length):Math.min(6, Math.floor(extra / clips.length));
   let cursor = 0;
   let reaction:NarrationReaction|undefined;
   const scenes = clips.map((clip, index): NarrationScene => {

@@ -15,3 +15,13 @@ test('escolher tema prepara falas e persiste sem iniciar renderização',async({
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('palito-show-v1')!).projects.at(-1));
  expect(saved.theme).toBe('Sextou e bebidas');expect(saved.scenes).toHaveLength(3);
 });
+
+test('série longa mostra roteiro completo antes de gerar',async({page})=>{
+ await page.goto('/');await page.getByLabel('Duração',{exact:true}).selectOption('90');
+ await page.getByLabel('Tema do vídeo').selectOption('Casal');
+ await page.getByRole('button',{name:'Criar roteiro neste tema',exact:true}).click();
+ await expect(page.locator('.category-tag')).toContainText('Casal na vida real');
+ await expect(page.getByLabel('Falas do roteiro').locator('p')).toHaveCount(12);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('palito-show-v1')!).projects.at(-1));
+ expect(saved.duration).toBe(90);expect(saved.laughter).toBeUndefined();
+});

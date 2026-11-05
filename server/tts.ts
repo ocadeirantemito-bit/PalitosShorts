@@ -1,3 +1,6 @@
+import {waveBuffer,amplitudeEnvelope} from './audio';
+export {amplitudeEnvelope} from './audio';
+import {readVoiceConfig,elevenSpeech} from './elevenlabs';
 import {mkdir, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {neuralReady,neuralSpeech} from './neural';
@@ -58,6 +61,7 @@ async function worker(): Promise<Worker> {
 }
 
 export async function voiceStatus() {
+ const config=await readVoiceConfig();if(config.provider==='elevenlabs')return {ready:Boolean(config.apiKey&&config.palito&&config.tica),engine:'elevenlabs',voices:[{character:'PALITO',voice:config.palito||'',language:'pt-BR'},{character:'TICO',voice:config.tica||'',language:'pt-BR'}],error:config.apiKey&&config.palito&&config.tica?undefined:'Configure a chave e as duas vozes em Configurações.'};
   if(await neuralReady())return {ready:true,engine:'kokoro-onnx',quality:'Vozes neurais locais em português brasileiro.',voices:[{character:'PALITO',voice:'pm_alex',language:'pt-BR'},{character:'TICO',voice:'pf_dora',language:'pt-BR'}],installation:'Vozes neurais instaladas. Execute TESTAR-VOZES.cmd para ouvir novamente.'};
   const details = {
     engine: 'espeak-ng',
@@ -73,36 +77,11 @@ export async function voiceStatus() {
   }
 }
 
-function waveBuffer(samples: Int16Array, sampleRate: number): Buffer {
-  const dataSize = samples.length * 2;
-  const out = Buffer.alloc(44 + dataSize);
-  out.write('RIFF', 0); out.writeUInt32LE(36 + dataSize, 4); out.write('WAVE', 8);
-  out.write('fmt ', 12); out.writeUInt32LE(16, 16); out.writeUInt16LE(1, 20);
-  out.writeUInt16LE(1, 22); out.writeUInt32LE(sampleRate, 24);
-  out.writeUInt32LE(sampleRate * 2, 28); out.writeUInt16LE(2, 32); out.writeUInt16LE(16, 34);
-  out.write('data', 36); out.writeUInt32LE(dataSize, 40);
-  for (let i = 0; i < samples.length; i++) out.writeInt16LE(samples[i], 44 + i * 2);
-  return out;
-}
-
-/** RMS amplitude for each 30fps frame: silence closes the mouth, speech opens it. */
-export function amplitudeEnvelope(samples: Int16Array, sampleRate: number): number[] {
-  const values: number[] = [];
-  for (let frame = 0; frame < Math.ceil(samples.length / sampleRate * 30); frame++) {
-    const start = Math.floor(frame * sampleRate / 30);
-    const end = Math.min(samples.length, Math.floor((frame + 1) * sampleRate / 30));
-    let power = 0;
-    for (let i = start; i < end; i++) power += samples[i] ** 2;
-    values.push(end > start ? Math.sqrt(power / (end - start)) : 0);
-  }
-  const peak = Math.max(1, ...values);
-  return values.map(rms => rms < 100 ? 0 : Math.min(1, Math.round(rms / peak * 1000) / 1000));
-}
-
 export async function synthesize(text: string, speaker: Speaker, outputPath: string): Promise<SpeechResult> {
   const line = text.trim();
   if (!line || line.length > 500) throw new Error('A fala deve conter entre 1 e 500 caracteres.');
   if (!(speaker in profiles)) throw new Error('Personagem sem voz configurada.');
+  const config=await readVoiceConfig();if(config.provider==='elevenlabs')return elevenSpeech(line,speaker,outputPath,config);
   if(await neuralReady())return neuralSpeech(line,speaker,outputPath);
   const engine = await worker();
   const profile = profiles[speaker];

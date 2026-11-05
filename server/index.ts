@@ -1,3 +1,4 @@
+import {readVoiceConfig,saveVoiceConfig,publicVoiceConfig,elevenVoices} from './elevenlabs';
 import {everydayCatalog} from '../src/everyday';
 import express from 'express';
 import {bundle} from '@remotion/bundler';
@@ -22,6 +23,12 @@ const browserReady=Boolean(browserExecutable&&existsSync(browserExecutable));
 let serveUrlPromise:Promise<string>|undefined;
 const getServeUrl=()=>serveUrlPromise??=(bundle({entryPoint:path.join(root,'src/remotion.tsx'),publicDir:path.join(root,'public')}).catch(error=>{serveUrlPromise=undefined;throw error;}));
 const idPattern=/^[a-f0-9-]{36}$/;
+// Credentials are writable only from the local browser on this computer.
+app.use('/api/voice-settings',(req,res,next)=>{const ip=req.socket.remoteAddress;const local=ip==='127.0.0.1'||ip==='::1'||ip==='::ffff:127.0.0.1';const origin=req.headers.origin;const host=req.headers.host;let validOrigin=!origin;try{if(origin){const u=new URL(origin);validOrigin=['localhost','127.0.0.1','[::1]'].includes(u.hostname)&&['http:','https:'].includes(u.protocol)&&['3001','5173'].includes(u.port);}}catch{}if(!local||!host||!['localhost','127.0.0.1','[::1]'].some(h=>host===h||host.startsWith(h+':'))||!validOrigin)return res.status(403).json({error:'Configure as vozes no próprio computador, abrindo localhost.'});next();});
+app.get('/api/voice-settings',async(_req,res)=>{try{res.json(publicVoiceConfig(await readVoiceConfig()));}catch(e){res.status(400).json({error:(e as Error).message});}});
+app.post('/api/voice-settings',async(req,res)=>{if(busy)return res.status(409).json({error:'Aguarde o vídeo terminar antes de mudar as vozes.'});try{await saveVoiceConfig(req.body);res.json(publicVoiceConfig(await readVoiceConfig()));}catch{res.status(400).json({error:'Confira a chave, o provedor e os IDs das duas vozes.'});}});
+app.get('/api/voice-settings/voices',async(_req,res)=>{try{res.json({voices:await elevenVoices(await readVoiceConfig())});}catch(e){res.status(400).json({error:(e as Error).message});}});
+app.post('/api/voice-settings/test',async(req,res)=>{if(busy)return res.status(409).json({error:'Aguarde o vídeo terminar.'});const speaker=req.body?.speaker;if(!['PALITO','TICO'].includes(speaker))return res.status(400).json({error:'Personagem inválido.'});busy=true;const destination=path.join(root,'.cache',`voice-test-${randomUUID()}.wav`);try{await synthesize(speaker==='PALITO'?'Amor, o salário caiu. Mas os boletos chegaram primeiro.':'Então vamos fazer o jantar em casa. Hoje o restaurante é nosso.',speaker,destination);res.json({audio:`data:audio/wav;base64,${(await readFile(destination)).toString('base64')}`});}catch(e){res.status(400).json({error:(e as Error).message});}finally{busy=false;await unlink(destination).catch(()=>{});}});
 app.get('/api/health',(_req,res)=>res.json({ok:true,renderer:'Remotion',busy,browserReady,browser:browserReady?path.basename(browserExecutable!):null}));
 app.get('/api/voices',async(_req,res)=>{try{res.json(await voiceStatus());}catch{res.status(503).json({error:'Vozes locais indisponíveis. Execute npm ci e consulte docs/VOICES.md.'});}});
 app.post('/api/render',async(req,res)=>{
@@ -46,7 +53,7 @@ app.post('/api/render',async(req,res)=>{
    reactionClip={duration:info.duration,envelope:info.envelope,src:`data:audio/wav;base64,${bytes.toString('base64')}`};
    reactionInfo={role:'reaction',engine:'user-recording',voice:'laughing-meme_NFCpcW5',duration:info.duration};
   }
-  const alternatives=project.status==='roteiro'&&project.duration<60?(project.theme?everydayCatalog.filter(p=>p.theme===project.theme):catalog).filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
+  const alternatives=project.status==='roteiro'&&project.duration<60&&(await readVoiceConfig()).provider!=='elevenlabs'?(project.theme?everydayCatalog.filter(p=>p.theme===project.theme):catalog).filter(p=>p.category===project.category&&p.title!==project.title).sort((a,b)=>a.scenes.reduce((n,s)=>n+s.line.length,0)-b.scenes.reduce((n,s)=>n+s.line.length,0)).slice(0,3):[];
   let prepared:ReturnType<typeof buildNarration>|undefined;
   let voiceInfo:unknown[]=[];
   for(let attempt=0;attempt<=alternatives.length;attempt++){

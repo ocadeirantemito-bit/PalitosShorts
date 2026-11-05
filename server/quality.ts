@@ -1,3 +1,4 @@
+import {wavePcm} from './audio';
 import {execFile} from 'node:child_process';
 import {stat} from 'node:fs/promises';
 import {promisify} from 'node:util';
@@ -95,6 +96,9 @@ export async function validateMovie(file: string, durationSeconds: number, narra
     if (!audio || !Number.isFinite(Number(audio.duration)) || Number(audio.duration) + .1 < durationSeconds) {
       throw new Error('A faixa de áudio está ausente ou terminou antes do vídeo.');
     }
+    // Always check actual speech, including Windows without a system FFmpeg.
+    const bundledAudio=await execute(mediaExecutable('ffmpeg'),['-v','error','-i',file,'-vn','-ac','1','-ar','8000','-acodec','pcm_s16le','-f','wav','pipe:1'],{encoding:'buffer',timeout:120000,maxBuffer:8*1024*1024,windowsHide:true});
+    const verifiedSpeech=inspectSpeech(wavePcm(bundledAudio.stdout),narration);
     const deepCheckAvailable=await run(ffmpeg,['-version']).then(()=>true).catch(error=>{
       if((error as NodeJS.ErrnoException).code==='ENOENT')return false;
       throw error;
@@ -103,8 +107,8 @@ export async function validateMovie(file: string, durationSeconds: number, narra
       return {
         checkedAt:new Date().toISOString(),bytes:info.size,duration:Number(video.duration),codec:video.codec_name,
         resolution:`${video.width}x${video.height}`,audioCodec:audio.codec_name,decodedCompletely:false,
-        blackIntervals:0,speech:[],images:[],
-        limitation:'Codec, resolução, duração e faixa de áudio foram verificados. A decodificação profunda requer FFmpeg no PATH; o MP4 foi preservado para reprodução e revisão manual.',
+        blackIntervals:0,speech:verifiedSpeech,images:[],
+        limitation:'Codec, resolução, duração e falas audíveis foram verificados. A decodificação profunda requer FFmpeg no PATH; o MP4 foi preservado para reprodução e revisão manual.',
       };
     }
     // The FFmpeg binary bundled by Remotion is intentionally minimal and does

@@ -30,7 +30,7 @@ const entries:Entry[]=[
 ];
 
 export const everydayCatalog=entries.map(([theme,category,title,a,b,c])=>({
- theme,category,title,setting:(theme==='Sextou e bebidas'?'cafe':'sala') as Project['setting'],
+ theme,category,title,
  scenes:[
   {speaker:'PALITO',line:a,caption:'',action:'falar'},
   {speaker:'TICO',line:b,caption:'',action:'falar'},

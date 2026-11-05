@@ -13,10 +13,29 @@ export type VoiceConfig=z.infer<typeof voiceConfigSchema>;
 export async function readVoiceConfig():Promise<VoiceConfig>{try{return voiceConfigSchema.parse(JSON.parse(await readFile(file,'utf8')));}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return {provider:'local'};throw Error('Configuração de vozes inválida. Configure novamente no aplicativo.');}}
 export async function saveVoiceConfig(value:unknown){const next=voiceConfigSchema.parse(value);const old=await readVoiceConfig();if(!next.apiKey)next.apiKey=old.apiKey;if(next.provider==='elevenlabs'&&!next.apiKey)throw Error('Preencha a chave.');await mkdir(directory,{recursive:true});const temp=`${file}.${randomUUID()}`;await writeFile(temp,JSON.stringify(next),{mode:0o600});await rename(temp,file);}
 export function publicVoiceConfig(c:VoiceConfig){return {provider:c.provider,palito:c.palito||'',tica:c.tica||'',hasKey:Boolean(c.apiKey)};}
+export async function elevenError(response:Response):Promise<string>{
+ let code='';try{const data=await response.json();if(typeof data?.detail?.status==='string')code=data.detail.status;else if(typeof data?.detail?.code==='string')code=data.detail.code;}catch{}
+ const messages:Record<string,string>={
+ quota_exceeded:'Os créditos do ElevenLabs acabaram ou não são suficientes para esta fala. Confira Usage na sua conta.',
+ insufficient_credits:'Os créditos do ElevenLabs não são suficientes para esta fala.',
+ paid_plan_required:'Esta voz ou recurso exige um plano pago na API do ElevenLabs. Para testar grátis, escolha uma voz permitida no seu plano.',
+ payment_required:'O ElevenLabs exige um plano pago para este pedido. Confira se a voz está disponível no plano gratuito.',
+ voice_not_found:'Voz não encontrada ou indisponível para sua conta. Copie novamente o Voice ID ou carregue as vozes da conta.',
+ invalid_api_key:'Chave ElevenLabs inválida. Confira a chave salva.',
+ missing_permissions:'A chave não tem a permissão necessária. Habilite Text to Speech para gerar ou Voices: leitura para carregar a lista.',
+ insufficient_permissions:'A chave não tem a permissão necessária. Confira Text to Speech e Voices: leitura.',
+ detected_unusual_activity:'O ElevenLabs bloqueou o uso gratuito por atividade incomum. Confira sua conta ou contate o suporte do serviço.',
+ unusual_activity:'O ElevenLabs bloqueou o pedido por atividade incomum. Confira sua conta ou contate o suporte do serviço.',
+ too_many_concurrent_requests:'Há pedidos simultâneos demais no ElevenLabs. Aguarde e tente novamente.',
+ model_not_found:'O modelo de voz não está disponível para esta conta. Confira o plano e os modelos permitidos.',
+ };
+ const fallback=response.status===401?'Chave ElevenLabs inválida.':response.status===403?'Sua conta não permite usar esta voz ou recurso. Confira o plano e as permissões da chave.':response.status===402?'O ElevenLabs exige créditos ou um plano pago para este pedido. Confira o plano e a voz escolhida.':response.status===429?'Limite de pedidos do ElevenLabs atingido. Aguarde e confira seus créditos.':response.status===404?'Voz não encontrada. Confira o Voice ID.':response.status===422?'O ElevenLabs recusou os parâmetros do pedido. Confira o Voice ID e a configuração de voz.':response.status>=500?'O ElevenLabs está indisponível no momento. Aguarde e tente novamente.':'O ElevenLabs recusou o pedido. Confira o plano, os créditos e a voz selecionada.';
+ return `${messages[code]||fallback} (HTTP ${response.status})`;
+}
 export async function elevenRequest(endpoint:string,config:VoiceConfig,body?:unknown){
  if(!config.apiKey)throw Error('Configure a chave do ElevenLabs.');
  let r:Response;try{r=await fetch(`https://api.elevenlabs.io${endpoint}`,{method:body?'POST':'GET',headers:{'xi-api-key':config.apiKey,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(60000)});}catch{throw Error('Não foi possível conectar ao ElevenLabs. Confira a internet e tente novamente.');}
- if(!r.ok){const message=r.status===401?'Chave ElevenLabs inválida.':r.status===403?'Sua conta não permite usar esta voz ou recurso. Confira o plano e as permissões da chave.':r.status===429?'Limite ou créditos do ElevenLabs atingidos. Aguarde ou confira sua conta.':r.status===404?'Voz não encontrada. Confira o Voice ID.':'O ElevenLabs não concluiu o pedido. Confira os créditos e tente novamente.';await r.body?.cancel();throw Error(message);}return r;
+ if(!r.ok)throw Error(await elevenError(r));return r;
 }
 export async function elevenVoices(config:VoiceConfig){const r=await elevenRequest('/v1/voices',config);const data=await r.json();return (data.voices||[]).map((v:{voice_id:string;name:string})=>({id:v.voice_id,name:v.name}));}
 export async function elevenSpeech(text:string,speaker:Speaker,output:string,c:VoiceConfig):Promise<SpeechResult>{
@@ -25,7 +44,7 @@ export async function elevenSpeech(text:string,speaker:Speaker,output:string,c:V
  const hash=createHash('sha256').update(JSON.stringify({voice,request,format:'mp3_44100_128',version:1})).digest('hex');
  const cache=path.join(directory,'audio',hash);let wav:Buffer,result:SpeechResult;
  try{wav=await readFile(`${cache}.wav`);result=JSON.parse(await readFile(`${cache}.json`,'utf8'));}catch{
- const response=await elevenRequest(`/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_128`,c,request);
+ const response=await elevenRequest(`/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_128`,c,request).catch(error=>{throw Error(`${speaker==='PALITO'?'Palito':'Tica'}: ${(error as Error).message}`);});
  const mp3=Buffer.from(await response.arrayBuffer());
  if(mp3.length<100||mp3.length>20_000_000)throw Error('O ElevenLabs retornou áudio inválido.');
  const child=execFile(mediaExecutable('ffmpeg'),['-v','error','-i','pipe:0','-acodec','pcm_s16le','-f','wav','-ac','1','-ar','24000','pipe:1'],{encoding:'buffer',maxBuffer:20_000_000,timeout:60000});

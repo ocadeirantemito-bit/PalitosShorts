@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {elevenRequest,publicVoiceConfig,voiceConfigSchema} from '../server/elevenlabs';
+import {elevenError,elevenRequest,publicVoiceConfig,voiceConfigSchema} from '../server/elevenlabs';
 test('configuração pública nunca inclui a chave e IDs são validados',()=>{
  const value=publicVoiceConfig({provider:'elevenlabs',apiKey:'secret-test',palito:'roger',tica:'roberta'});
  assert.equal(JSON.stringify(value).includes('secret-test'),false);assert.equal(value.hasKey,true);
@@ -10,7 +10,7 @@ test('requisição ElevenLabs usa autenticação no servidor e esconde corpo de 
  const original=globalThis.fetch;
  try{
  globalThis.fetch=async(input,options)=>{assert.equal(String(input),'https://api.elevenlabs.io/v1/voices');assert.equal((options?.headers as Record<string,string>)['xi-api-key'],'test-key');return new Response(JSON.stringify({secret:'test-key'}),{status:401});};
- await assert.rejects(elevenRequest('/v1/voices',{provider:'elevenlabs',apiKey:'test-key'}),e=>e instanceof Error&&e.message==='Chave ElevenLabs inválida.');
+ await assert.rejects(elevenRequest('/v1/voices',{provider:'elevenlabs',apiKey:'test-key'}),e=>e instanceof Error&&e.message==='Chave ElevenLabs inválida. (HTTP 401)');
  globalThis.fetch=async()=>new Response('{}',{status:403});
  await assert.rejects(elevenRequest('/v1/voices',{provider:'elevenlabs',apiKey:'test-key'}),/permissões/);
  }finally{globalThis.fetch=original;}
@@ -30,4 +30,13 @@ test('áudio convertido preserva duração e cache evita nova cobrança para a m
  assert.equal(calls,1);assert.deepEqual(a,b);assert.ok(a.duration>=1&&a.duration<1.2);assert.ok(a.envelope.some(n=>n>.1));
  assert.deepEqual(await readFile(path.join(dir,'a.wav')),await readFile(path.join(dir,'b.wav')));
  }finally{globalThis.fetch=original;await rm(dir,{recursive:true,force:true});}
+});
+
+test('diagnóstico distingue limite de créditos, plano pago, permissão e bloqueio sem vazar conteúdo',async()=>{
+ for(const [status,code,expected] of [[400,'quota_exceeded','créditos'],[402,'paid_plan_required','plano pago'],[401,'missing_permissions','permissão'],[403,'detected_unusual_activity','atividade incomum'],[400,'voice_not_found','Voice ID']] as const){
+ const message=await elevenError(new Response(JSON.stringify({detail:{status:code,message:'secret-key-and-private-data'}}),{status}));
+ assert.ok(message.includes(expected),message);assert.ok(message.includes(`HTTP ${status}`));assert.equal(message.includes('secret-key'),false);
+ }
+ const unknown=await elevenError(new Response(JSON.stringify({detail:{status:'secret-key',message:'secret-key'}}),{status:400}));assert.equal(unknown.includes('secret-key'),false);
+ const html=await elevenError(new Response('<html>secret-key</html>',{status:503}));assert.ok(html.includes('indisponível'));assert.equal(html.includes('secret-key'),false);
 });

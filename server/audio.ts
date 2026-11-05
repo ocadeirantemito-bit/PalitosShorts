@@ -24,3 +24,9 @@ export function amplitudeEnvelope(samples: Int16Array, sampleRate: number): numb
   return values.map(rms => rms < 100 ? 0 : Math.min(1, Math.round(rms / peak * 1000) / 1000));
 }
 
+
+export function wavePcm(buffer:Buffer):Buffer{
+ if(buffer.toString('ascii',0,4)!=='RIFF'||buffer.toString('ascii',8,12)!=='WAVE')throw Error('Áudio WAV inválido.');
+ for(let offset=12;offset+8<=buffer.length;){const size=buffer.readUInt32LE(offset+4);if(buffer.toString('ascii',offset,offset+4)==='data')return buffer.subarray(offset+8,Math.min(buffer.length,offset+8+size));offset+=8+size+(size%2);}
+ throw Error('Áudio WAV sem amostras.');
+}

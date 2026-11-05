@@ -1,6 +1,6 @@
 import type {Project,Scene} from './model';
 export const series=[
- {name:'Vida de trabalhador',theme:'Trabalho',title:'O favor das 17h59',setting:'cafe',lines:[
+ {name:'Vida de trabalhador',theme:'Trabalho',title:'O favor das 17h59',setting:'escritorio',lines:[
  'São cinco e cinquenta e nove. Guardei o computador, peguei a mochila e o chefe apareceu sorrindo.',
  'Deixa eu adivinhar: ele perguntou se você tinha um minutinho. Esse minuto nunca aparece no relógio.',
  'Disse que era só mudar uma cor na apresentação. Abri o arquivo e tinham quarenta páginas sem título.',
@@ -14,7 +14,7 @@ export const series=[
  'Aceitou. Corrigi a capa, fechei tudo e ele perguntou se eu podia mandar uma versão no grupo.',
  'Manda amanhã. Hoje sua única apresentação é mostrar o cartão para o motorista e conseguir um banco.'
  ]},
- {name:'Casal na vida real',theme:'Casal',title:'O jantar de qualquer coisa',setting:'sala',lines:[
+ {name:'Casal na vida real',theme:'Casal',title:'O jantar de qualquer coisa',setting:'cozinha',lines:[
  'Estamos há meia hora escolhendo o jantar. Você disse qualquer coisa e recusou pizza, sopa e sanduíche.',
  'Porque eu quero uma comida diferente, mas com gosto conhecido, que chegue quente e não seja cara.',
  'Entendi. Você quer um restaurante novo, com o cardápio da sua mãe e o preço do mercado de dez anos atrás.',
@@ -28,7 +28,7 @@ export const series=[
  'Combinado. O que você quer que eu compre? Vou anotar agora para não passar outra meia hora decidindo.',
  'Qualquer coisa. Mas coloca tomate na lista, que esse pelo menos não precisou de cupom para salvar a noite.'
  ]},
- {name:'Sextou sem dinheiro',theme:'Sextou e bebidas',title:'Reserva na varanda',setting:'sala',lines:[
+ {name:'Sextou sem dinheiro',theme:'Sextou e bebidas',title:'Reserva na varanda',setting:'varanda',lines:[
  'O pessoal chamou para sair na sexta. Fui olhar o saldo e meu aplicativo abriu direto na parte de respirar fundo.',
  'Eu também queria sair. Mas o aluguel já saiu, a luz já saiu e o dinheiro saiu antes da gente.',
  'O grupo escolheu um lugar com música ao vivo. Olhei o preço da entrada e quase comecei a cantar aqui mesmo.',

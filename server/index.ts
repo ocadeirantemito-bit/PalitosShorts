@@ -1,3 +1,4 @@
+import {writerConfig,saveWriter,writeStory} from './writer';
 import {readVoiceConfig,saveVoiceConfig,publicVoiceConfig,elevenVoices} from './elevenlabs';
 import {everydayCatalog} from '../src/everyday';
 import express from 'express';
@@ -25,6 +26,10 @@ const getServeUrl=()=>serveUrlPromise??=(bundle({entryPoint:path.join(root,'src/
 const idPattern=/^[a-f0-9-]{36}$/;
 // Credentials are writable only from the local browser on this computer.
 app.use('/api/voice-settings',(req,res,next)=>{const ip=req.socket.remoteAddress;const local=ip==='127.0.0.1'||ip==='::1'||ip==='::ffff:127.0.0.1';const origin=req.headers.origin;const host=req.headers.host;let validOrigin=!origin;try{if(origin){const u=new URL(origin);validOrigin=['localhost','127.0.0.1','[::1]'].includes(u.hostname)&&['http:','https:'].includes(u.protocol)&&['3001','5173'].includes(u.port);}}catch{}if(!local||!host||!['localhost','127.0.0.1','[::1]'].some(h=>host===h||host.startsWith(h+':'))||!validOrigin)return res.status(403).json({error:'Configure as vozes no próprio computador, abrindo localhost.'});next();});
+app.get('/api/voice-settings/writer',async(_req,res)=>{try{const c=await writerConfig();res.json({enabled:c.enabled,hasKey:Boolean(c.apiKey)});}catch{res.status(400).json({error:'Configure novamente a IA.'});}});
+app.post('/api/voice-settings/writer',async(req,res)=>{try{await saveWriter(req.body);const c=await writerConfig();res.json({enabled:c.enabled,hasKey:Boolean(c.apiKey)});}catch(e){res.status(400).json({error:(e as Error).message.startsWith('Informe')?(e as Error).message:'Configuração de IA inválida.'});}});
+let writing=false;
+app.post('/api/voice-settings/story',async(req,res)=>{if(writing||busy)return res.status(409).json({error:'Aguarde o pedido atual terminar.'});writing=true;try{res.json({project:await writeStory(req.body)});}catch(e){res.status(400).json({error:(e as Error).message.length<250?(e as Error).message:'Falha ao criar roteiro. Confira tema e duração.'});}finally{writing=false;}});
 app.get('/api/voice-settings',async(_req,res)=>{try{res.json(publicVoiceConfig(await readVoiceConfig()));}catch(e){res.status(400).json({error:(e as Error).message});}});
 app.post('/api/voice-settings',async(req,res)=>{if(busy)return res.status(409).json({error:'Aguarde o vídeo terminar antes de mudar as vozes.'});try{await saveVoiceConfig(req.body);res.json(publicVoiceConfig(await readVoiceConfig()));}catch{res.status(400).json({error:'Confira a chave, o provedor e os IDs das duas vozes.'});}});
 app.get('/api/voice-settings/voices',async(_req,res)=>{try{res.json({voices:await elevenVoices(await readVoiceConfig())});}catch(e){res.status(400).json({error:(e as Error).message});}});
@@ -92,7 +97,7 @@ app.post('/api/render',async(req,res)=>{
 });
 app.get('/api/jobs/:id',async(req,res)=>{if(!idPattern.test(req.params.id))return res.status(404).json({error:'Exportação não encontrada.'});let job=jobs.get(req.params.id);if(!job){try{job=JSON.parse(await readFile(path.join(output,req.params.id,'job.json'),'utf8'));}catch{return res.status(404).json({error:'Exportação não encontrada. Tente gerar novamente.'});}}res.json(job);});
 app.get('/api/productions/:id',async(req,res)=>{if(!idPattern.test(req.params.id))return res.status(404).json({error:'Produção não encontrada.'});try{res.json(JSON.parse(await readFile(path.join(output,req.params.id,'production.json'),'utf8')));}catch{res.status(404).json({error:'Produção ainda não concluída ou removida.'});}});
-app.get('/api/audio/:id/:file',(req,res)=>{if(!idPattern.test(req.params.id)||!/^(?:\d|reaction)\.wav$/.test(req.params.file))return res.status(404).end();res.sendFile(path.join(output,req.params.id,req.params.file),e=>{if(e&&!res.headersSent)res.status(404).end();});});
+app.get('/api/audio/:id/:file',(req,res)=>{if(!idPattern.test(req.params.id)||!/^(?:\d{1,2}|reaction)\.wav$/.test(req.params.file))return res.status(404).end();res.sendFile(path.join(output,req.params.id,req.params.file),e=>{if(e&&!res.headersSent)res.status(404).end();});});
 app.get('/api/files/:file',async(req,res)=>{if(!/^[a-f0-9-]{36}\.mp4$/.test(req.params.file))return res.status(404).json({error:'Arquivo não encontrado.'});const file=path.join(output,req.params.file);try{await stat(file);res.download(file,'palito-show.mp4');}catch{res.status(404).json({error:'Arquivo não encontrado. Gere o vídeo novamente.'});}});
 app.use(express.static(path.join(root,'dist')));
 app.use('/api',(_req,res)=>res.status(404).json({error:'Rota não encontrada.'}));

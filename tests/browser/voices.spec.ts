@@ -9,3 +9,12 @@ test('configuração ElevenLabs não grava chave no navegador e não gera áudio
  await expect(page.getByLabel('Chave ElevenLabs')).toHaveValue('');expect(received.apiKey).toBe('fake-test-key');expect(calls).toBe(0);
  expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain('fake-test-key');
 });
+
+test('teste de voz apresenta restrição do plano como erro visível',async({page})=>{
+ await page.route('**/api/voice-settings',r=>r.fulfill({json:{provider:'elevenlabs',hasKey:true,palito:'roger',tica:'roberta'}}));
+ await page.route('**/api/voice-settings/test',r=>r.fulfill({status:400,json:{error:'Tica: Esta voz ou recurso exige um plano pago na API do ElevenLabs. (HTTP 402)'}}));
+ await page.goto('/');await page.getByRole('button',{name:/^⚙ Configurações$/}).click();
+ await page.getByRole('button',{name:'Testar Tica',exact:false}).click();
+ await expect(page.getByRole('alert')).toContainText('HTTP 402');await expect(page.getByRole('alert')).toContainText('plano pago');
+ await expect(page.getByRole('button',{name:'Testar Tica',exact:false})).toBeEnabled();
+});

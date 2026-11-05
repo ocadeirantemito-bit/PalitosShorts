@@ -1,3 +1,4 @@
+import {storyAppearance} from './artDirection';
 import React from 'react';
 import {AbsoluteFill,Audio,Sequence,interpolate,staticFile,useCurrentFrame} from 'remotion';
 import {sceneTimes,type Project} from './model';
@@ -13,7 +14,7 @@ export function Video({project,narration}:VideoProps){
  const reactionMouth=0; // Recorded laughter is a background effect, not character dialogue.
  const ticaMouth=reactionMouth||(scene.speaker==='TICO'?mouthLevel:0);
  const fade=interpolate(t,[0,8],[0,1],{extrapolateRight:'clamp'});
- const setting=project.setting||(project.category==='Humor'?'sala':project.category==='Reflexões'?'cafe':'parque');
+ const {setting,outfit}=storyAppearance(project);
  const storyProp=project.scenes.map(s=>inferStoryProp(project,s)).find(kind=>kind!=='nenhum')||'nenhum';
  const inactiveAction:CharacterAction=scene.action==='surpresa'?'surpresa':'parado';
  const bg={creme:'#fff7e8',azul:'#e9f5ff',lilas:'#f0eaff'}[project.background];
@@ -22,8 +23,8 @@ export function Video({project,narration}:VideoProps){
  <g>
   <Scenery setting={setting} frame={frame}/>
   <SupportedStoryObject kind={storyProp} t={frame}/>
-  <Character x={330} female={false} action={scene.speaker==='PALITO'?scene.action:inactiveAction} t={t} active={scene.speaker==='PALITO'} look={1} depth={1} mouthLevel={narration?(scene.speaker==='PALITO'?mouthLevel:0):0}/>
-  <Character x={745} female={true} action={scene.speaker==='TICO'?scene.action:inactiveAction} t={t+17} active={scene.speaker==='TICO'||reactionMouth>0} look={-1} depth={1} mouthLevel={narration?ticaMouth:0}/>
+  <Character outfit={outfit} x={330} female={false} action={scene.speaker==='PALITO'?scene.action:inactiveAction} t={t} active={scene.speaker==='PALITO'} look={1} depth={1} mouthLevel={narration?(scene.speaker==='PALITO'?mouthLevel:0):0}/>
+  <Character outfit={outfit} x={745} female={true} action={scene.speaker==='TICO'?scene.action:inactiveAction} t={t+17} active={scene.speaker==='TICO'||reactionMouth>0} look={-1} depth={1} mouthLevel={narration?ticaMouth:0}/>
   <Foreground setting={setting} frame={frame}/>
  </g>
  </svg>

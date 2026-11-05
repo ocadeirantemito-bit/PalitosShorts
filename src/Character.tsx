@@ -2,10 +2,10 @@ import React from 'react';
 import type {Scene} from './model';
 
 export type CharacterAction=Scene['action']|'parado';
-type CharacterProps={x:number;female:boolean;action:CharacterAction;t:number;active:boolean;mouthLevel?:number;look?:-1|1;depth?:number};
+type CharacterProps={x:number;female:boolean;action:CharacterAction;t:number;active:boolean;mouthLevel?:number;look?:-1|1;depth?:number;outfit?:'casual'|'trabalho'|'casa'|'esporte'};
 
-export function Character({x,female,action,t,active,mouthLevel,look=female?-1:1,depth=1}:CharacterProps){
- const ink='#211f2a',hair=female?'#603822':'#19171c',accent=female?'#9137bd':'#f1ba16',face='#fffaf0';
+export function Character({x,female,action,t,active,mouthLevel,look=female?-1:1,depth=1,outfit}:CharacterProps){
+ const ink='#211f2a',hair=female?'#603822':'#19171c',accent=outfit==='trabalho'?(female?'#327c88':'#4972aa'):outfit==='esporte'?(female?'#dd6b59':'#399a79'):outfit==='casa'?(female?'#ad779e':'#c88b49'):female?'#9137bd':'#f1ba16',face='#fffaf0';
  // Single bounded gesture, then rest. No perpetual bouncing or scene-long sliding.
  const gesture=Math.sin(Math.PI*Math.min(1,Math.max(0,t)/48));
  const walk=action==='andar'?Math.sin(t*.16)*12*gesture:0;
@@ -33,6 +33,7 @@ export function Character({x,female,action,t,active,mouthLevel,look=female?-1:1,
    {female&&<path d="M-69 48Q-101 114-78 193Q-65 218-45 225L-36 175H42L48 225Q78 211 85 180Q102 94 64 43Z" fill={hair} strokeWidth="7"/>}
    <g fill="none" strokeWidth="12"><path d="M0 174L0 302"/><path d={`M0 300Q-15 349 ${legLeft} 420`}/><path d={`M0 300Q17 350 ${legRight} 420`}/></g>
    <path d={`M${legLeft-25} 422h50`} fill="none" strokeWidth="13"/><path d={`M${legRight-25} 422h50`} fill="none" strokeWidth="13"/>
+   {outfit&&<g data-outfit={outfit}><path d="M-24 178L-44 205L-27 218V293H27V218L44 205L24 178Z" fill={accent} strokeWidth="5"/>{outfit==='trabalho'?<path d="M-18 179L0 196L18 179M0 196v72" fill="none" stroke="#fff4dc" strokeWidth="4"/>:outfit==='esporte'?<path d="M-18 187v86m36-86v86" stroke="#fff4dc" strokeWidth="4"/>:null}</g>}
    {action==='cruzar'?<g fill="none" strokeWidth="11"><path d="M-18 194L-55 226L23 248"/><path d="M18 194L55 224L-22 238"/><circle cx="23" cy="248" r="10" fill={face}/><circle cx="-22" cy="238" r="10" fill={face}/></g>:<g fill="none" strokeWidth="11">
     <path d={armPath(-1,leftHand)}/><path d={armPath(1,rightHand)}/><circle cx={leftHand.x} cy={leftHand.y} r="12" fill={face} strokeWidth="7"/><circle cx={rightHand.x} cy={rightHand.y} r="12" fill={face} strokeWidth="7"/>{action==='apontar'&&<path d={`M${rightHand.x+9} ${rightHand.y-3}l29-10`} strokeWidth="8"/>}
    </g>}
